@@ -1,6 +1,7 @@
 # my-web
 my web
 
+python version: 3.12
 command to generate requirements.txt:
 ```
 pipreqs --savepath=requirements.in && pip-compile
