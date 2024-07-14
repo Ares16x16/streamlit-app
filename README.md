@@ -11,3 +11,6 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 Have to install xFormers for diffusion model:
 https://github.com/facebookresearch/xformers
+
+https://pjreddie.com/darknet/yolo/ (for yolo)
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch-nightly -c nvidia 
