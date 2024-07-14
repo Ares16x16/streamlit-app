@@ -194,6 +194,9 @@ if "output_image" not in st.session_state:
     st.session_state.output_image = None
 
 st.title("Diffusion Model")
+st.write(
+    "Please select a diffusion model and image will be generated using the selected model."
+)
 model_options = [
     "Stable Diffusion",
     "Canny Diffusion",
