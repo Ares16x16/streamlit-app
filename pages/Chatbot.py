@@ -1,10 +1,7 @@
 import streamlit as st
+import modules.chatbot.llm as llm
 
-from g4f.client import Client
-from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
-
-client = Client()
-
+llm_client = llm.Client()
 
 st.title("ChatBot")
 
@@ -25,7 +22,7 @@ if prompt := st.chat_input(""):
         full_response = ""
 
         with st.spinner("Generating response..."):
-            for chunk in client.chat.completions.create(
+            for chunk in llm_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": m["role"], "content": m["content"]}
