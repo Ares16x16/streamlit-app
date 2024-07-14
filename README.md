@@ -1,16 +1,15 @@
 # my-web
-my web
 
+Dependencies:
 python version: 3.12
-command to generate requirements.txt:
-```
-pipreqs --savepath=requirements.in && pip-compile
-```
-This error for torch cu213 so pip freeze is used.
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+Error for torch cu213: ```pipreqs --savepath=requirements.in && pip-compile```
+So ```pip freeze``` is used, so it may only works on windows.
 
-Have to install xFormers for diffusion model:
+```pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121```
+
+For Diffusion, xformers is needed:
 https://github.com/facebookresearch/xformers
 
-https://pjreddie.com/darknet/yolo/ (for yolo)
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch-nightly -c nvidia 
+For YOLO:
+https://pjreddie.com/darknet/yolo/
+```conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch-nightly -c nvidia ```
