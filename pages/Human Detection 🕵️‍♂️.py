@@ -8,35 +8,11 @@ import streamlit as st
 from PIL import Image
 from ultralytics import YOLO
 from datetime import timedelta
+from deep_sort_realtime.deepsort_tracker import DeepSort
 
 
 with st.spinner("Loading YOLO v8n model..."):
     model = YOLO("yolov8n.pt")
-
-
-def process_image(image):
-    results = model(image)
-    people = []
-    for result in results:
-        for box in result.boxes:
-            if box.cls == 0 and box.conf > 0.5:
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                people.append((x1, y1, x2 - x1, y2 - y1))
-
-    # Draw bounding boxes with labels
-    for i, (x, y, w, h) in enumerate(people):
-        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 5)
-        cv2.putText(
-            image,
-            f"Person {i+1}",
-            (x, y - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.9,
-            (36, 255, 12),
-            2,
-        )
-
-    return image, people
 
 
 def delete_temp_files(temp_folder):
@@ -52,9 +28,41 @@ def delete_temp_files(temp_folder):
         print(f"Folder not found: {temp_folder}")
 
 
-def process_video(video_bytes):
-    # TODO: Use facial recognition to track people across frames/Make traciing  accurate
-    #       Now the detected person is wrongly tracked across frames
+def process_image_deepsort(image):
+    results = model(image)
+    detections = []
+    for result in results:
+        for box in result.boxes:
+            if box.cls == 0 and box.conf > 0.5:
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                confidence = box.conf.item()
+                detections.append([[x1, y1, x2, y2], confidence])
+
+    tracks = deepsort.update_tracks(detections, frame=image)
+
+    people = []
+    for track in tracks:
+        if not track.is_confirmed():
+            continue
+        track_id = track.track_id
+        bbox = track.to_ltrb()
+        people.append((track_id, bbox))
+        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 5)
+        cv2.putText(
+            image,
+            f"Person {track_id}",
+            (x1, y1 - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            (36, 255, 12),
+            2,
+        )
+
+    return image, people
+
+
+def process_video_deepsort(video_bytes):
     temp_folder = "temp/"
     if not os.path.exists(temp_folder):
         os.makedirs(temp_folder)
@@ -85,7 +93,92 @@ def process_video(video_bytes):
             break
 
         frame_number += 1
-        annotated_frame, people = process_image(frame)
+        annotated_frame, people = process_image_deepsort(frame)
+
+        for track_id, (x1, y1, x2, y2) in people:
+            if track_id not in detection_data:
+                detection_data[track_id] = {
+                    "Person ID": track_id,
+                    "Total Time Appeared (s)": 0,
+                    "Frames Appeared": [],
+                }
+            detection_data[track_id]["Total Time Appeared (s)"] += 1 / frame_rate
+            detection_data[track_id]["Frames Appeared"].append(frame_number)
+
+        out.write(annotated_frame)
+
+    cap.release()
+    out.release()
+
+    video_file = open(tmp_output_file, "rb")
+    video_bytes = video_file.read()
+    video_file.close()
+    delete_temp_files(temp_folder)
+
+    df = pd.DataFrame(detection_data.values())
+    df["Total Time Appeared (s)"] = df["Total Time Appeared (s)"].round(2)
+
+    return video_bytes, df
+
+
+def process_image_normal(image):
+    results = model(image)
+    people = []
+    for result in results:
+        for box in result.boxes:
+            if box.cls == 0 and box.conf > 0.5:
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                people.append((x1, y1, x2 - x1, y2 - y1))
+
+    for i, (x, y, w, h) in enumerate(people):
+        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 5)
+        cv2.putText(
+            image,
+            f"Person {i+1}",
+            (x, y - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            (36, 255, 12),
+            2,
+        )
+
+    return image, people
+
+
+def process_video_normal(video_bytes):
+    # Create the 'temp/' folder if it doesn't exist
+    temp_folder = "temp/"
+    if not os.path.exists(temp_folder):
+        os.makedirs(temp_folder)
+
+    # Save video bytes to a temporary file
+    input_buffer = BytesIO(video_bytes)
+    input_buffer.seek(0)
+    file_id = str(uuid.uuid4())
+    tmp_input_file = f"{temp_folder}{file_id}_input_video.mp4"
+    with open(tmp_input_file, "wb") as f:
+        f.write(input_buffer.read())
+
+    cap = cv2.VideoCapture(tmp_input_file)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")  # H.264 codec
+    tmp_output_file = f"{temp_folder}{file_id}_output_video.mp4"
+    out = cv2.VideoWriter(tmp_output_file, fourcc, fps, (width, height))
+
+    frame_number = 0
+    frame_rate = int(fps)
+    detection_data = {}
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame_number += 1
+        annotated_frame, people = process_image_normal(frame)
 
         for i, (x, y, w, h) in enumerate(people):
             person_id = i + 1
@@ -108,17 +201,22 @@ def process_video(video_bytes):
     video_file.close()
     delete_temp_files(temp_folder)
 
+    # Convert detection data to DataFrame
     df = pd.DataFrame(detection_data.values())
     df["Total Time Appeared (s)"] = df["Total Time Appeared (s)"].round(2)
 
     return video_bytes, df
 
 
+def update_key():
+    st.session_state.uploader_key += 1
+
+
 # Streamlit app
 st.title("Human Detection 🕵️‍♂️")
 st.write("Model: YOLOv8n")
 st.write(
-    "Annotated images and videos will be generated and you can saved to your local storage. For videos, detection data will be displayed in a table."
+    "Annotated images and videos will be generated and you can save them to your local storage."
 )
 
 if "uploader_key" not in st.session_state:
@@ -128,8 +226,19 @@ if "output" not in st.session_state:
     st.session_state.output = [None, None, None]
 
 
-def update_key():
-    st.session_state.uploader_key += 1
+tracking_model = st.selectbox("Select a tracking model", ["None", "DeepSORT"])
+if tracking_model == "DeepSORT":
+    # Info from https://medium.com/axinc-ai/deepsort-a-machine-learning-model-for-tracking-people-1170743b5984
+    max_age = st.number_input(
+        "max_age", value=50, step=5
+    )  # specifies after how many frames unallocated tracks will be deleted
+    max_iou_distance = st.slider(
+        "max_max_iou_distance (%)", 0, 100, 70
+    )  # threshold value that determines how much the bounding boxes should overlap to determine the identity of the unassigned track
+    max_iou_distance /= 100
+    n_init = st.number_input(
+        "n_init", value=3, step=1
+    )  # specifies after how many frames newly allocated tracks will be activateds
 
 
 file = st.file_uploader(
@@ -138,14 +247,22 @@ file = st.file_uploader(
     key=f"uploader_{st.session_state.uploader_key}",
 )
 
+# Btn Control
+if "run_button" in st.session_state and st.session_state.run_button == True:
+    st.session_state.running = True
+else:
+    st.session_state.running = False
 
-if file is not None:
+if file is not None and st.button(
+    "Process", disabled=st.session_state.running, key="run_button"
+):
+    st.write("---")
     file_type = file.type.split("/")[0]
 
     if file_type == "image":
         img = Image.open(file)
         image = np.array(img.convert("RGB"))
-        annotated_image, people = process_image(image)
+        annotated_image, people = process_image_normal(image)
         detection_data = [
             {"Person ID": i + 1, "Bounding Box": (x, y, w, h)}
             for i, (x, y, w, h) in enumerate(people)
@@ -156,7 +273,15 @@ if file is not None:
     elif file_type == "video":
         video_bytes = file.read()
         with st.spinner("Processing the video..."):
-            annotated_video, df = process_video(video_bytes)
+            if tracking_model == "DeepSORT":
+                deepsort = DeepSort(
+                    max_iou_distance=max_iou_distance,
+                    max_age=max_age,
+                    n_init=n_init,
+                )
+                annotated_video, df = process_video_deepsort(video_bytes)
+            elif tracking_model == "None":
+                annotated_video, df = process_video_normal(video_bytes)
             st.session_state.output = [file_type, annotated_video, df]
 
 # st.session_state.output[0] == file_type
