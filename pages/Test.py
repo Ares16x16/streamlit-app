@@ -1,5 +1,9 @@
 import streamlit as st
+from g4f.client import Client
 
-st.video(
-    "https://www.youtube.com/watch?v=vxkk2xnXijc&ab_channel=AquaCh.%E6%B9%8A%E3%81%82%E3%81%8F%E3%81%82"
+client = Client()
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "give me the script"}],
 )
+st.write(response.choices[0].message.content)

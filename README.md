@@ -13,3 +13,7 @@ https://github.com/facebookresearch/xformers
 For YOLO:
 https://pjreddie.com/darknet/yolo/
 ```conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch-nightly -c nvidia ```
+
+For Chatbot:
+https://github.com/xtekky/gpt4free 
+https://github.com/xtekky/gpt4free?tab=readme-ov-file#image-generation 
