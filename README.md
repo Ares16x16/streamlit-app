@@ -1,9 +1,9 @@
-# my-web
+# Streamlit app
 
 Dependencies:
 python version: 3.12
 Error for torch cu213: ```pipreqs --savepath=requirements.in && pip-compile```
-So ```pip freeze``` is used, so it may only works on windows.
+```pip freeze``` is used, it may only works on windows.
 
 ```pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121```
 
