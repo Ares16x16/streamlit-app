@@ -1,7 +1,7 @@
 # Streamlit app
 
-Dependencies:
-python version: 3.12
+Dependencies: python version: 3.12
+
 Error for torch cu213: ```pipreqs --savepath=requirements.in && pip-compile```
 ```pip freeze``` is used, it may only works on windows.
 
