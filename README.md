@@ -1,5 +1,8 @@
 # Streamlit app
-
+This is my streamlit app, currently it only has 2 pages.
+1. Image generation using stable diffusion with ControlNet
+2. Human Detection on uploaded video
+   
 Dependencies: python version: 3.12
 
 Error for torch cu213: ```pipreqs --savepath=requirements.in && pip-compile```
