@@ -62,7 +62,7 @@ scikit-image==0.24.0
 scipy==1.13.1
 six==1.16.0
 smmap==5.0.1
-streamlit==1.36.0
+streamlit==1.37.0
 sympy==1.13.1
 tenacity==8.5.0
 tifffile==2024.7.2
