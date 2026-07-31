@@ -44,7 +44,7 @@ opencv-python==4.10.0.84
 opencv-python-headless==4.10.0.84
 packaging==24.1
 pandas==2.2.2
-pillow==12.1.1
+pillow==12.3.0
 protobuf==4.25.3
 pyarrow==16.1.0
 pydeck==0.9.1
