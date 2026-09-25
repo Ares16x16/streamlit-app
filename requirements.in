@@ -1,9 +1,11 @@
 controlnet_aux==0.0.9
 diffusers==0.29.2
+GitPython==3.1.62
 numpy==2.0.0
 opencv_contrib_python==4.10.0.84
 opencv_python==4.10.0.84
 opencv_python_headless==4.10.0.84
-Pillow==10.4.0
-streamlit==1.37.0
-transformers==4.48.0
+Pillow==12.3.0
+streamlit==1.54.0
+tornado==6.5.10
+transformers==5.17.0
